@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>vlank</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no" />
+    <link rel="stylesheet" href="./assets/css/normalize.css">
+    <style>
+        .header{display: flex; align-items: center; justify-content: space-between; background: #fdd;}
+        .header button{border: 0; outline: 0; padding: 10px; border-radius: 5px; vertical-align: middle; background: 0; font-weight: 900; cursor: pointer;}
+        .header button:disabled{color: rgba(0, 0, 0, .5);}
+        .viewer{line-height: 3; padding: 10px; white-space: break-spaces;}
+        .viewer span{border: 1px solid #eee; display: inline-block; color: transparent; padding: 5px; line-height: normal; font-weight: 600; transition: color .5s linear; cursor: pointer;}
+        .viewer span:hover{color: #000;}
+        .layer{position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, .5); z-index: 2; display: none;}
+        .layer.on{display: block;}
+        .layer button{background: 0; border: 0; outline: 0; font-weight: 900; cursor: pointer;}
+        .layer > section{min-width: 300px; width: 50%; position: absolute; top: 50%; left: 50%; transform : translate(-50%, -50%);}
+        .layer header{background: #fff; display: flex; justify-content: flex-end; padding: 10px;}
+        .layer article.on{display: block;}
+        .layer article{padding: 10px; box-sizing: border-box; background: #fdd; display: none;}
+        .layer .blank-cnt-pop{text-align: center;}
+        .layer .blank-cnt-pop *{vertical-align: middle;}
+        .layer textarea{display: block; max-height: 800px; height: 200px; width: 100%; box-sizing: border-box; border: 0; resize: none; padding: 5px; box-sizing: border-box; overflow-y: auto; padding: 10px;}
+        .layer .btn-space{text-align: right; margin-bottom: 10px;}
+        .layer .btn-space button{vertical-align: top;}
+        .layer select{width: 100px;}
+    </style>
+
+</head>
+<body>
+    <header id="header" class="header">
+        <div>
+            <button class="btn-blank" disabled>설정</button>
+        </div>
+        <div>
+            <button id="btn_textView" class="btn-layer-on">추가</button>
+            <button id="btn_vlank" class="btn-vlank">Vlank</button>
+        </div>
+    </header>
+    <div>
+        <div id="viewer" class="viewer">등록된 text가 없습니다.</div>
+    </div>
+
+    <aside id="layer" class="layer">
+        <section>
+            <header>
+                <div>
+                    <button id="btn_layerClose">&cross;</button>
+                </div>
+            </header>
+            <article id="textAreaPop">
+                <div class="btn-space">
+                    <button id="btn_init">초기화</button>
+                    <button id="btn_add">등록</button>
+                </div>
+                <div>
+                    <textarea id="textContent" placeholder="내용"></textarea>
+                </div>
+            </article>
+            <article id="blankCntPop" class="blank-cnt-pop">
+                <select></select>
+                <button id="btn_vlank2">Vlank</button>
+            </article>
+        </section>
+
+    </aside>
+
+
+    <script>
+        const qs = function(t){return document.querySelector(t);}
+        const qsa = function(t){return document.querySelectorAll(t);}
+
+        const vlank2 = new vlank();
+        
+        qs('#layer').addEventListener('click', function(e){ //레이어팝업쪽
+            const ids = e.target.id;
+            const textContent = qs('#textContent');
+            const blankCntSelect = qs('#blankCntPop select');
+            switch(ids){
+                case 'btn_init':
+                    textContent.value = '';
+                break;
+                case 'btn_vlank2':
+                    vlank2.makeBlank(vlank2.text, qs('#blankCntPop select').value);
+                    qs('#layer').classList.remove('on');
+
+                break;
+                case 'btn_add':
+                    if(textContent.value === ''){
+                        alert('내용을 입력해주세요.');
+                        return;
+                    }
+                    
+                    vlank2.setText(textContent.value);
+
+                    qs('#viewer').innerHTML = vlank2.text;
+
+
+                case 'layer':
+                case 'btn_layerClose':
+                    this.classList.remove('on');
+                break;
+            }
+        });
+
+        qs('#header').addEventListener('click', function(e){    //header쪽 버튼
+            const ids = e.target.id;
+            switch(ids){
+                case 'btn_textView':
+                    qs('#layer').classList.add('on');
+                    qs('#blankCntPop').classList.remove('on');
+                    qs('#textAreaPop').classList.add('on');
+                    qs('#layer textarea').focus();
+                break;
+                case 'btn_vlank':
+                    if(vlank2.text === ''){
+                        alert('내용을 추가해 주세요.');
+                        return;
+                    }
+                    
+                    qs('#layer').classList.add('on');
+                    qs('#textAreaPop').classList.remove('on');
+                    qs('#blankCntPop').classList.add('on');
+                    qs('#blankCntPop select').innerHTML = '';
+
+                    const wordCnt = vlank2.getBlockCntRange();
+                    for(let i = 0; i < wordCnt; i++){
+                        const option = document.createElement('option');
+                        option.value = i + 1;
+                        option.innerText = i + 1;
+
+                        qs('#blankCntPop select').appendChild(option);
+                    }
+
+                    qsa('#blankCntPop select option')[parseInt(wordCnt / 2)].setAttribute('selected', true);
+                break;
+            }
+        })
+
+        function getRandomNum(mn, mx, exceptArr){
+            let rdmNum = Math.floor(Math.random() * (mx - mn + 1)) + mn;
+            if(exceptArr != undefined){
+                for(let i = 0; i < exceptArr.length; i++){
+                    if(exceptArr[i] == rdmNum) return getRandomNum(mn, mx, exceptArr);
+                    break;
+                }
+            }
+
+            return rdmNum;
+        };
+
+        function vlank(target, option) {
+
+            const t = this;
+            t.text = '';
+            t.textArr = [];
+
+            this.makeBlank = function(txt, cnt){
+                if(cnt === 0 || cnt === undefined || isNaN(cnt)) return;
+
+                const wordIdxArr = [];
+                const pickedIdxArr = [];
+                const txtInfoArr = [];
+
+                for(let i = 0; i < t.textArr.length; i++){  //모든 text for문
+                    const tmpObj = {idx: i, txt: t.textArr[i], isBlank: false};
+                    txtInfoArr.push(tmpObj);
+
+                    if(t.textArr[i] != '' && t.textArr[i] != '\n') wordIdxArr.push(i);
+                }
+
+                for(let i = 0; i < cnt; i++){
+                    pickedIdxArr.push(wordIdxArr.splice(getRandomNum(0, wordIdxArr.length - 1), 1)[0]);
+                }
+
+                for(let i = 0; i < pickedIdxArr.length; i++){
+                    txtInfoArr[pickedIdxArr[i]].isBlank = true;
+                };
+
+
+                let finalTxt = '';
+
+                for(let i = 0; i < txtInfoArr.length; i++){
+                    finalTxt += txtInfoArr[i].isBlank ? '<span data-hidden="' + txtInfoArr[i].txt + '">' + txtInfoArr[i].txt + '</span>' : txtInfoArr[i].txt;
+                    if(txtInfoArr.length - 1 !== i) finalTxt += ' ';
+                }
+
+                qs('#viewer').innerHTML = finalTxt;
+            }
+
+            this.setText = function(txt){
+                const txtArr = txt.split(' ');
+                const txtArr2 = [];
+                for(let i = 0; i < txtArr.length; i++){
+                    if(txtArr[i].indexOf('\n') > -1){
+                        const tmpArr = txtArr[i].split('\n').join(' \n ').split(' ');
+                        for(let j = 0; j < tmpArr.length; j++){
+                            txtArr2.push(tmpArr[j]);
+                        }
+                    }else{
+                        txtArr2.push(txtArr[i]);
+                    }
+                }
+
+                t.textArr =  txtArr2;
+                t.text = txtArr2.join(' ').split(' \n ').join('\n');
+            }
+
+
+            this.getBlockCntRange = function(){
+                let cnt = 0;
+
+                for(let i = 0; i < t.textArr.length; i++){
+                    if(t.textArr[i] != '' && t.textArr[i] != '\n') cnt++;
+                }
+
+                return cnt;
+            }
+
+            // this.strToArr = function(){
+            //     return t.text.split(/\s/);
+            // }
+        }
+
+
+    </script>
+
+</body>
+</html>
